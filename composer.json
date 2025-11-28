@@ -14,7 +14,6 @@
         "ext-intl": "*",
         "ext-mbstring": "*",
         "laminas/laminas-escaper": "^2.17",
-        "phpoffice/phpexcel": "^1.8",
         "phpoffice/phpspreadsheet": "^5.2",
         "psr/log": "^3.0"
     },
