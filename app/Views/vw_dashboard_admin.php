@@ -20,7 +20,7 @@ Admin Page
         <div class="card-body">
             <div class="row justify-content-around">
                 <div class="col-md-6 my-2">
-                    <a href="/admin/m_user" class="btn btn-secondary d-flex flex-column justify-content-center align-items-center">
+                    <a href="<?= base_url() ?>admin/m_user" class="btn btn-secondary d-flex flex-column justify-content-center align-items-center">
                         <i class="fa-solid fa-user" style="font-size: 24px;"></i>
                         Manajemen User
                     </a>
