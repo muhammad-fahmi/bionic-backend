@@ -115,8 +115,25 @@ class Api extends BaseController
 
     public function getSubmittedTask()
     {
-        $data = $this->submittedTask->join('m_locations', 'r_tasksubmissions.lokasi_id = m_locations.id')->findAll();
+        $data = $this->submittedTask
+            ->select("r_tasksubmissions.id,r_tasksubmissions.tanggal,r_tasksubmissions.petugas,r_tasksubmissions.shift,r_tasksubmissions.lokasi_id,r_tasksubmissions.status,m_locations.lokasi,m_locations.shift")
+            ->join('m_locations', 'r_tasksubmissions.lokasi_id = m_locations.id')
+            ->findAll();
 
         return $this->response->setStatusCode(200)->setJSON($data);
+    }
+
+    public function updateSubmittedTask()
+    {
+        $data = $this->request->getVar('data');
+        $id = $this->request->getVar('id');
+        $this->submittedTask
+            ->update($id, [
+                'status' => $data,
+            ]);
+
+        return $this->response->setStatusCode(200)->setJSON([
+            'message' => "Task berhasil di update"
+        ]);
     }
 }

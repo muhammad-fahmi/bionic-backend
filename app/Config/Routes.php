@@ -13,6 +13,7 @@ $routes->post('auth/create', 'Auth::create');
 // Frontend API
 $routes->group('api', function (RouteCollection $routes) {
     $routes->get('submitted_task', 'Api::getSubmittedTask');
+    $routes->put('submitted_task', 'Api::updateSubmittedTask');
     $routes->get('task/(:any)', 'Api::getTask/$1');
     $routes->get('qr', 'Api::getQr');
     $routes->post('task/submit', 'Api::postTask');
