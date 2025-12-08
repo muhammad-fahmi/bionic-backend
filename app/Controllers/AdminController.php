@@ -16,11 +16,12 @@ class AdminController extends BaseController
 
     public function user()
     {
-        $users = $this->user->findAll();
-        $shifts = $this->user->select('shift_code')->join('r_shifts', 'm_users.id = r_shifts.user_id')->where('shift_date', date('Y-m-d', strtotime('now')))->findAll();
+        $user_data = $this->user->select('user_id,nama,jabatan,shift_code')
+        ->join('r_shifts', 'm_users.id = r_shifts.user_id')
+        ->where('shift_date', date('Y-m-d', strtotime('now')))
+        ->findAll();
         $sent_data = [
-            'users' => $users,
-            'shifts' => $shifts
+            'users' => $user_data
         ];
         return view('vw_m_user', $sent_data);
     }

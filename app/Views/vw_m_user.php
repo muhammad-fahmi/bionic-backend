@@ -111,36 +111,20 @@ Manajemen User
                 </thead>
                 <tbody>
                     <?php $index = 0; ?>
-                    <?php foreach ($users as $key => $user): ?>
-                        <?php if ($user['jabatan'] == 'admin') continue; ?>
+                    <?php foreach ($users as $user): ?>
                         <tr>
                             <td><?= ++$index; ?></td>
-                            <td><?= $user['nama']; ?></td>
-                            <td><?= ucfirst($user['jabatan']); ?></td>
-                            <?php if (isset($shifts[$key])): ?>
-                                <td><?= $shifts[$key]['shift_code']; ?></td>
-                            <?php else: ?>
-                                <?php if ($user['jabatan'] == 'petugas'): ?>
-                                    <td><?= "Belum Ditentukan"; ?></td>
-                                <?php else: ?>
-                                    <td><?= "-"; ?></td>
-                                <?php endif; ?>
-                            <?php endif; ?>
+                            <td><?= $user['nama'] ?></td>
+                            <td><?= $user['jabatan'] ?></td>
+                            <td><?= $user['shift_code'] ?></td>
                             <td>
-                                <div class="btn-group-justified">
-                                    <button class="btn btn-primary">
-                                        <i class="fa-solid fa-magnifying-glass"></i>
-                                        Detail
-                                    </button>
-                                    <button class="btn btn-warning">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                        Edit
-                                    </button>
-                                    <button class="btn btn-danger">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                        Hapus
-                                    </button>
-                                </div>
+                                <button class="btn btn-warning">
+                                    
+                                    Edit
+                                </button>
+                                <button class="btn btn-danger">
+                                    Delete
+                                </button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
