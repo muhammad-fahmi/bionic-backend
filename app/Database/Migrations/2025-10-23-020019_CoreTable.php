@@ -21,10 +21,10 @@ class CoreTable extends Migration
                 "constraint" => 200,
                 "unique" => true
             ],
-            "jabatan"  => [
+            "jabatan" => [
                 "type" => "ENUM",
                 'constraint' => ['petugas', 'verifikator', 'admin'],
-                'default'    => 'petugas',
+                'default' => 'petugas',
             ],
             "username" => [
                 "type" => "VARCHAR",
@@ -72,8 +72,11 @@ class CoreTable extends Migration
             "nama" => [
                 "type" => "VARCHAR",
                 "constraint" => 150,
+            ],
+            "type" => [
+                "type" => "VARCHAR",
+                "constraint" => 100
             ]
-
         ]);
         $this->forge->addKey("id", true);
         $this->forge->createTable("m_items");
@@ -150,8 +153,7 @@ class CoreTable extends Migration
             ],
             "kondisi" => [
                 "type" => "ENUM",
-                "constraint" => ['sesuai', 'tidak_sesuai'],
-                "default" => 'sesuai'
+                "constraint" => ['tersedia', 'tidak_tersedia', 'bersih', 'kotor']
             ]
         ]);
         $this->forge->addKey("id", true);

@@ -27,11 +27,13 @@ class ItemSeeder extends Seeder
             for ($row = 2; $row <= $highestRow; $row++) {
                 $nama = $spreadsheet->getCell('B' . $row)->getFormattedValue();
                 $lokasi = $spreadsheet->getCell('E' . $row)->getOldCalculatedValue();
+                $type = $spreadsheet->getCell('F' . $row)->getOldCalculatedValue();
                 array_push(
                     $data,
                     [
                         'nama' => $nama,
                         'lokasi_id' => $lokasi,
+                        'type' => $type
                     ]
                 );
             }

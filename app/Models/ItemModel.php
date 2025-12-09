@@ -15,7 +15,8 @@ class ItemModel extends Model
     protected $allowedFields    = [
         'id',
         'id_lokasi',
-        'nama'
+        'nama',
+        'type'
     ];
 
     protected bool $allowEmptyInserts = false;
