@@ -16,7 +16,7 @@ class Api extends BaseController
         }
 
         $tasks = $this->item
-            ->select('m_items.id,nama as "item",lokasi,shift,lokasi_id')
+            ->select('m_items.id,nama as "item",lokasi,shift,lokasi_id,type')
             ->join('m_locations', 'm_items.lokasi_id = m_locations.id')
             ->where('shift', $shift)->findAll();
 
@@ -28,7 +28,7 @@ class Api extends BaseController
 
         if ($id_lokasi != false) {
             $tasks = $this->item
-                ->select('m_items.id,nama as "item",lokasi,shift,lokasi_id')
+                ->select('m_items.id,nama as "item",lokasi,shift,lokasi_id,type')
                 ->join('m_locations', 'm_items.lokasi_id = m_locations.id')
                 ->where('shift', $shift)
                 ->where('m_locations.id', $id_lokasi)->findAll();
