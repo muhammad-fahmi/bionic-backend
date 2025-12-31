@@ -21,7 +21,7 @@ class Cache extends BaseConfig
      * The name of the preferred handler that should be used. If for some reason
      * it is not available, the $backupHandler will be used in its place.
      */
-    public string $handler = 'file';
+    public string $handler = (ENVIRONMENT === 'production') ? 'file' : 'dummy';
 
     /**
      * --------------------------------------------------------------------------
@@ -82,7 +82,7 @@ class Cache extends BaseConfig
      */
     public array $file = [
         'storePath' => WRITEPATH . 'cache/',
-        'mode'      => 0640,
+        'mode' => 0640,
     ];
 
     /**
@@ -98,10 +98,10 @@ class Cache extends BaseConfig
      * @var array{host?: string, port?: int, weight?: int, raw?: bool}
      */
     public array $memcached = [
-        'host'   => '127.0.0.1',
-        'port'   => 11211,
+        'host' => '127.0.0.1',
+        'port' => 11211,
         'weight' => 1,
-        'raw'    => false,
+        'raw' => false,
     ];
 
     /**
@@ -115,10 +115,10 @@ class Cache extends BaseConfig
      * @var array{host?: string, password?: string|null, port?: int, timeout?: int, database?: int}
      */
     public array $redis = [
-        'host'     => '127.0.0.1',
+        'host' => '127.0.0.1',
         'password' => null,
-        'port'     => 6379,
-        'timeout'  => 0,
+        'port' => 6379,
+        'timeout' => 0,
         'database' => 0,
     ];
 
@@ -133,12 +133,12 @@ class Cache extends BaseConfig
      * @var array<string, class-string<CacheInterface>>
      */
     public array $validHandlers = [
-        'dummy'     => DummyHandler::class,
-        'file'      => FileHandler::class,
+        'dummy' => DummyHandler::class,
+        'file' => FileHandler::class,
         'memcached' => MemcachedHandler::class,
-        'predis'    => PredisHandler::class,
-        'redis'     => RedisHandler::class,
-        'wincache'  => WincacheHandler::class,
+        'predis' => PredisHandler::class,
+        'redis' => RedisHandler::class,
+        'wincache' => WincacheHandler::class,
     ];
 
     /**

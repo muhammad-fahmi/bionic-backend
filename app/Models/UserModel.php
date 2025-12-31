@@ -6,46 +6,53 @@ use CodeIgniter\Model;
 
 class UserModel extends Model
 {
-    protected $table            = 'm_users';
-    protected $primaryKey       = 'id';
+    protected $table = 'm_users';
+    protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
-    protected $protectFields    = true;
-    protected $allowedFields    = [
+    protected $returnType = 'array';
+    protected $useSoftDeletes = false;
+    protected $protectFields = true;
+    protected $allowedFields = [
         'nama',
         'jabatan',
         'username',
         'password',
     ];
 
-    protected bool $allowEmptyInserts = false;
-    protected bool $updateOnlyChanged = true;
+    public function getAllUser(): array
+    {
+        return $this->select('*')->findAll();
+    }
 
-    protected array $casts = [];
-    protected array $castHandlers = [];
+    public function getUserById($id): ?array
+    {
+        return $this->select('id, nama, jabatan, username')->find($id);
+    }
 
-    // Dates
-    protected $useTimestamps = false;
-    protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
-    protected $deletedField  = 'deleted_at';
+    public function updateUser($id, array $data): bool
+    {
+        return $this->update($id, $data);
+    }
 
-    // Validation
-    protected $validationRules      = [];
-    protected $validationMessages   = [];
-    protected $skipValidation       = false;
-    protected $cleanValidationRules = true;
+    public function isUsernameUnique(string $username, int $excludeId): bool
+    {
+        return $this->where('username', $username)
+                    ->where('id !=', $excludeId)
+                    ->countAllResults() === 0;
+    }
 
-    // Callbacks
-    protected $allowCallbacks = true;
-    protected $beforeInsert   = [];
-    protected $afterInsert    = [];
-    protected $beforeUpdate   = [];
-    protected $afterUpdate    = [];
-    protected $beforeFind     = [];
-    protected $afterFind      = [];
-    protected $beforeDelete   = [];
-    protected $afterDelete    = [];
+    public function deleteUser($id): bool
+    {
+        return $this->delete($id);
+    }
+
+    public function createUser(array $data): bool
+    {
+        return $this->insert($data) !== false;
+    }
+
+    public function isUsernameExists(string $username): bool
+    {
+        return $this->where('username', $username)->countAllResults() > 0;
+    }
 }

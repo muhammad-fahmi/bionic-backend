@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\ShiftModel;
 use App\Models\UserModel;
+use CodeIgniter\Config\Services;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\ResponseInterface;
 use CodeIgniter\RESTful\ResourceController;
@@ -14,89 +15,160 @@ use DateTime;
  */
 class Auth extends ResourceController
 {
-    /**
-     * Return an array of resource objects, themselves in array format.
-     *
-     * @return ResponseInterface
-     */
-    public function index()
+
+    // Auth - Login Entry Point
+    public function login()
     {
+        session()->destroy();
+        $sent_data = [
+            'page_title' => "Login Page"
+        ];
+        return view('auth/vw_login', $sent_data);
+    }
+
+    // Login Handler
+    public function login_handler()
+    {
+        if (!$this->request->is('post')) {
+            return view('auth/login');
+        }
+
+        // Input validation
+        $validation = service('validation');
+        $rules = [
+            'username' => [
+                'label' => 'Username',
+                'rules' => 'required|min_length[5]|max_length[50]',
+                'errors' => [
+                    'required' => '{field} harus diisi',
+                    'min_length' => '{field} minimal 5 karakter',
+                    'max_length' => '{field} maksimal 50 karakter'
+                ]
+            ],
+            'password' => [
+                'label' => 'Password',
+                'rules' => 'required|min_length[5]',
+                'errors' => [
+                    'required' => '{field} harus diisi',
+                    'min_length' => '{field} minimal 5 karakter'
+                ]
+            ]
+        ];
+
+        $data = $this->request->getPost(array_keys($rules));
+
+        // Run Validation
+        if (!$this->validateData($data, $rules)) {
+            // Validation failed, return to login page with errors
+            return redirect()->to('/auth/login')
+                ->withInput()
+                ->with('errors', $validation->getErrors());
+        }
+
+        $validData = $this->validator->getValidated();
+
         $username = $this->request->getVar('username');
         $password = $this->request->getVar('password');
 
-        // Data awal
-        $shift = [1, 2, 3];
+        $model = new UserModel();
+        $user = $model
+            ->select('id,nama,jabatan,password')
+            ->where('username', $username)
+            ->first();
 
-        // Daftar nama karyawan
-        $names = ['Ari', 'Yanto', 'Budi'];
-
-        // Hitung offset berdasarkan tanggal
-        // Misal: tiap hari akan bergeser 1 posisi
-        $date = new DateTime();
-        $day = (int)$date->format('z'); // hari ke-berapa dalam setahun (0-365)
-        $offset = $day % count($shift); // rotasi berdasarkan sisa bagi
-
-        // Lakukan rotasi array
-        $rotatedShift = array_merge(
-            array_slice($shift, $offset),
-            array_slice($shift, 0, $offset)
-        );
-
-        // Mapping hasil rotasi ke variabel
-        foreach ($names as $index => $name) {
-            $$name = $rotatedShift[$index];
+        if (!$user) {
+            // User not found
+            return redirect()->to('/auth/login')
+                ->withInput()
+                ->with('error', 'Username atau password salah');
         }
 
-        $model = new UserModel();
         [
             'id' => $id,
             'nama' => $nama,
             'jabatan' => $jabatan,
             'password' => $db_password
-        ] = $model
-            ->select('*')
-            ->where('username', $username)
-            ->first();
+        ] = $user;
 
-
-        if (password_verify($password, $db_password)) {
-            if ($jabatan == 'verifikator') {
-                $data = [
-                    'nama' => $nama,
-                    'jabatan' => $jabatan,
-                ];
-            } else {
-                $shift_model = new ShiftModel();
-                $data_exist = $shift_model->where('user_id', $id)->where('shift_date', date('Y-m-d', strtotime('now')))->findAll();
-                if (count($data_exist) == 0) {
-                    $shift_model->save([
-                        'user_id' => $id,
-                        'shift_code' => $$nama,
-                        'shift_date' => date('Y-m-d')
-                    ]);
-                }
-
-                $data = [
-                    'nama' => $nama,
-                    'jabatan' => $jabatan,
-                    'shift' => $$nama
-                ];
-            }
-
-            return $this->response
-                ->setStatusCode(200)
-                ->setJSON($data);
-        } else {
-            return $this->response
-                ->setStatusCode(404,"user tidak ditemukan");
+        if (!password_verify($password, $db_password)) {
+            // Password incorrect
+            return redirect()->to('/auth/login')
+                ->withInput()
+                ->with('error', 'Username atau password salah');
         }
+
+        // Handle different user roles
+        if ($jabatan == 'verifikator') {
+            $data = [
+                'id' => $id,
+                'nama' => $nama,
+                'jabatan' => $jabatan,
+            ];
+
+            session()->set('user_info', $data);
+            return redirect('verifikator');
+        }
+
+        if ($jabatan == 'admin') {
+            $data = [
+                'id' => $id,
+                'nama' => $nama,
+                'jabatan' => $jabatan,
+            ];
+
+            session()->set('user_info', $data);
+            return redirect('admin');
+        }
+
+        // Handle operator (petugas) login with dynamic shift assignment
+        $shiftAssignmentModel = new \App\Models\ShiftAssignmentModel();
+        $shiftRotationService = new \App\Libraries\ShiftRotationService();
+
+        // Get current shift assignment
+        $currentShift = $shiftAssignmentModel->getCurrentShift($id);
+
+        // If no shift assigned or shift expired, assign a new one
+        if (!$currentShift || $currentShift['end_date'] < date('Y-m-d')) {
+            // Auto-assign a balanced shift to this operator
+            $shiftRotationService->assignShiftToNewUser($id, date('Y-m-d'));
+
+            // Re-fetch the newly assigned shift
+            $currentShift = $shiftAssignmentModel->getCurrentShift($id);
+        }
+
+        $shiftCode = $currentShift['shift_code'] ?? 1; // Default to shift 1 if something goes wrong
+
+        // Log daily shift usage to r_shifts table (for backward compatibility)
+        $shift_model = new ShiftModel();
+        $data_exist = $shift_model
+            ->where('user_id', $id)
+            ->where('shift_date', date('Y-m-d'))
+            ->findAll();
+
+        if (count($data_exist) == 0) {
+            $shift_model->save([
+                'user_id' => $id,
+                'shift_code' => $shiftCode,
+                'shift_date' => date('Y-m-d')
+            ]);
+        }
+
+        // Store shift info in session including dates for notification logic
+        $data = [
+            'id' => $id,
+            'nama' => $nama,
+            'jabatan' => $jabatan,
+            'shift' => $shiftCode,
+            'shift_start_date' => $currentShift['start_date'] ?? null,
+            'shift_end_date' => $currentShift['end_date'] ?? null,
+        ];
+
+        session()->set('user_info', $data);
+
+        return redirect('operator');
     }
 
-    /**
-     * Membuat user baru(hanya bisa diakses oleh admin)
-     *
-     * @return ResponseInterface
-     */
+
     public function create()
     {
         [
@@ -104,7 +176,6 @@ class Auth extends ResourceController
             'jabatan' => $jabatan,
             'username' => $username,
             'password' => $password,
-            'id_shift' => $id_shift
         ] = $this->request->getVar();
 
         $model = new UserModel();
@@ -113,7 +184,7 @@ class Auth extends ResourceController
             'jabatan' => $jabatan,
             'username' => $username,
             'password' => password_hash($password, PASSWORD_DEFAULT),
-            'id_shift' => $id_shift,
+            'is_active' => 1
         ];
         $result = $model->insert($data, false);
         if ($result) {

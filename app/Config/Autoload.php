@@ -90,7 +90,9 @@ class Autoload extends AutoloadConfig
      */
     public $helpers = [
         'form',
+        'array',
         'url',
-        'custom'
+        'text',
+        'shift_notification',
     ];
 }

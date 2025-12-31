@@ -25,14 +25,29 @@ class MyCors implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
-        header('Access-Control-Allow-Origin: *'); // Or specify allowed origins: 'http://localhost:3000'
-        header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method, Authorization");
-        header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, PATCH, DELETE");
-        header('Access-Control-Allow-Credentials: true'); // If you need to send cookies/credentials
+        // Sesuaikan origin dengan URL frontend Anda
+        // $allowedOrigins = [
+        //     'http://localhost:3000',
+        //     'http://localhost:5173',  // Vite default
+        //     'https://bionic-natura.cloud',
+        // ];
 
-        $method = $_SERVER['REQUEST_METHOD'];
-        if ($method == "OPTIONS") {
-            die(); // Handle preflight requests
+        // $origin = $request->getHeaderLine('Origin');
+
+        // if (in_array($origin, $allowedOrigins)) {
+        //     header("Access-Control-Allow-Origin: $origin");
+        // }
+
+
+        header("Access-Control-Allow-Origin: *");
+        header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Max-Age: 86400');
+
+        // Handle preflight request
+        if ($request->getMethod() === 'OPTIONS') {
+            exit(0);
         }
     }
 

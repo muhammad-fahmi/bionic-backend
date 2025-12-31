@@ -7,7 +7,6 @@ use App\Models\ItemModel;
 use App\Models\LocationModel;
 use App\Models\ShiftModel;
 use App\Models\TaskSubmissionActionModel;
-use App\Models\TaskSubmissionAttachModel;
 use App\Models\TaskSubmissionItemModel;
 use App\Models\TaskSubmissionModel;
 use App\Models\UserModel;
@@ -51,16 +50,6 @@ abstract class BaseController extends Controller
      * The creation of dynamic property is deprecated in PHP 8.2.
      */
     // protected $session;
-    protected $user;
-    protected $item;
-    protected $location;
-    protected $actions;
-    protected $shift;
-    protected $submittedTask;
-    protected $submittedTaskItem;
-    protected $submittedTaskAction;
-    protected $submittedTaskAttachment;
-
 
     /**
      * @return void
@@ -71,15 +60,6 @@ abstract class BaseController extends Controller
         parent::initController($request, $response, $logger);
 
         // Preload any models, libraries, etc, here.
-        $this->user = new UserModel();
-        $this->item = new ItemModel();
-        $this->location = new LocationModel();
-        $this->actions = new ActionModel();
-        $this->shift = new ShiftModel();
-        $this->submittedTask = new TaskSubmissionModel();
-        $this->submittedTaskItem = new TaskSubmissionItemModel();
-        $this->submittedTaskAction = new TaskSubmissionActionModel();
-        $this->submittedTaskAttachment = new TaskSubmissionAttachModel();
         // E.g.: $this->session = service('session');
     }
 }

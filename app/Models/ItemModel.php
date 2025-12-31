@@ -6,46 +6,29 @@ use CodeIgniter\Model;
 
 class ItemModel extends Model
 {
-    protected $table            = 'm_items';
-    protected $primaryKey       = 'id';
+    protected $table = 'm_items';
+    protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
-    protected $useSoftDeletes   = false;
-    protected $protectFields    = true;
-    protected $allowedFields    = [
+    protected $returnType = 'array';
+    protected $useSoftDeletes = false;
+    protected $protectFields = true;
+    protected $allowedFields = [
         'id',
-        'id_lokasi',
+        'lokasi_id',
         'nama',
+        'nama_display',
         'type'
     ];
 
-    protected bool $allowEmptyInserts = false;
-    protected bool $updateOnlyChanged = true;
+    public function getAllItem()
+    {
+        return $this->select('*')->findAll();
+    }
 
-    protected array $casts = [];
-    protected array $castHandlers = [];
-
-    // Dates
-    protected $useTimestamps = false;
-    protected $dateFormat    = 'datetime';
-    protected $createdField  = 'created_at';
-    protected $updatedField  = 'updated_at';
-    protected $deletedField  = 'deleted_at';
-
-    // Validation
-    protected $validationRules      = [];
-    protected $validationMessages   = [];
-    protected $skipValidation       = false;
-    protected $cleanValidationRules = true;
-
-    // Callbacks
-    protected $allowCallbacks = true;
-    protected $beforeInsert   = [];
-    protected $afterInsert    = [];
-    protected $beforeUpdate   = [];
-    protected $afterUpdate    = [];
-    protected $beforeFind     = [];
-    protected $afterFind      = [];
-    protected $beforeDelete   = [];
-    protected $afterDelete    = [];
+    public function getAllItemWithLocation()
+    {
+        return $this->select('m_items.id as id, m_items.lokasi_id, m_items.nama, m_items.nama_display, m_items.type, m_locations.name')
+                    ->join('m_locations', 'm_items.lokasi_id = m_locations.id', 'left')
+                    ->findAll();
+    }
 }
