@@ -194,7 +194,6 @@ class Operator extends BaseController
 
             // Process submissions: update existing or create new
             foreach ($grouped as $itemId => $payload) {
-                $timeCleaned = max(1, count($payload['actions']));
 
                 if (isset($existingTasksByItem[$itemId])) {
                     // Update existing task submission
@@ -205,9 +204,13 @@ class Operator extends BaseController
                     $currentStatus = $existingTask['status'] ?? null;
                     $newStatus = in_array($currentStatus, ['revisi', 'revised'], true) ? 'pending' : 'verified';
 
+                    // Increment time_cleaned by 1 on resubmission
+                    $currentTimeCleaned = (int) ($existingTask['time_cleaned'] ?? 0);
+                    $newTimeCleaned = $currentTimeCleaned + 1;
+
                     // Update task submission FIRST (preserve revision_message, clear verified metadata)
                     $updateData = [
-                        'time_cleaned' => $timeCleaned,
+                        'time_cleaned' => $newTimeCleaned,
                         'status' => $newStatus,
                         'verified_by' => null,
                         'verified_at' => null
@@ -215,15 +218,37 @@ class Operator extends BaseController
 
                     $taskSubmissionModel->update($taskId, $updateData);
 
-                    // Delete old details AFTER update
-                    $taskSubmissionDetailModel->where('task_submission_id', $taskId)->delete();
+                    // Increment quantity for existing details, insert new ones if action is new
+                    $existingActionIds = $taskSubmissionDetailModel->where('task_submission_id', $taskId)
+                        ->findColumn('action_id') ?? [];
+
+                    foreach ($payload['actions'] as $actionId) {
+                        $existingDetail = $taskSubmissionDetailModel->where('task_submission_id', $taskId)
+                            ->where('action_id', $actionId)
+                            ->first();
+
+                        if ($existingDetail) {
+                            // Increment quantity
+                            $newQuantity = (int) ($existingDetail['quantity'] ?? 1) + 1;
+                            $taskSubmissionDetailModel->update($existingDetail['task_submission_detail_id'], [
+                                'quantity' => $newQuantity
+                            ]);
+                        } else {
+                            // Insert new detail
+                            $taskSubmissionDetailModel->insert([
+                                'task_submission_id' => $taskId,
+                                'action_id' => $actionId,
+                                'quantity' => 1
+                            ]);
+                        }
+                    }
                 } else {
                     // Create new task submission
                     $data = [
                         'date' => $payload['date'],
                         'location_id' => $payload['location_id'],
                         'item_id' => $payload['item_id'],
-                        'time_cleaned' => $timeCleaned,
+                        'time_cleaned' => 1,
                         'revision_message' => null,
                         'status' => 'pending',
                         'submitted_by' => $payload['submitted_by'],
@@ -232,15 +257,15 @@ class Operator extends BaseController
                     ];
 
                     $taskId = $taskSubmissionModel->insert($data);
-                }
 
-                // Insert new details
-                foreach ($payload['actions'] as $actionId) {
-                    $taskSubmissionDetailModel->insert([
-                        'task_submission_id' => $taskId,
-                        'action_id' => $actionId,
-                        'quantity' => 1
-                    ]);
+                    // Insert new details with quantity = 1
+                    foreach ($payload['actions'] as $actionId) {
+                        $taskSubmissionDetailModel->insert([
+                            'task_submission_id' => $taskId,
+                            'action_id' => $actionId,
+                            'quantity' => 1
+                        ]);
+                    }
                 }
             }
 
