@@ -125,12 +125,19 @@
 
                 const cameraId = devices[0].id;
                 qrScanner.start(
-                    { deviceId: { exact: cameraId } },
+                    { facingMode: { exact: "user" } },
                     { fps: 10, qrbox: { width: 150, height: 150 } },
                     onQrCodeScanned,
                     onScanError
                 ).catch(err => {
-                    toastr.error('Gagal memulai kamera: ' + err, 'Error');
+                    qrScanner.start(
+                        { facingMode: { exact: "environment" } },
+                        { fps: 10, qrbox: { width: 150, height: 150 } },
+                        onQrCodeScanned,
+                        onScanError
+                    ).catch(err => {
+                        toastr.error('Gagal memulai kamera: ' + err, 'Error');
+                    });
                 });
             })
             .catch(err => {
