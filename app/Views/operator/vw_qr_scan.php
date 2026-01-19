@@ -125,13 +125,13 @@
 
                 const cameraId = devices[0].id;
                 qrScanner.start(
-                    { facingMode: { exact: "user" } },
+                    { facingMode: { exact: "environment" } },
                     { fps: 10, qrbox: { width: 150, height: 150 } },
                     onQrCodeScanned,
                     onScanError
                 ).catch(err => {
                     qrScanner.start(
-                        { facingMode: { exact: "environment" } },
+                        { facingMode: { exact: "user" } },
                         { fps: 10, qrbox: { width: 150, height: 150 } },
                         onQrCodeScanned,
                         onScanError
