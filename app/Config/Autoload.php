@@ -93,6 +93,6 @@ class Autoload extends AutoloadConfig
         'array',
         'url',
         'text',
-        'shift_notification',
+        'backend_helper'
     ];
 }

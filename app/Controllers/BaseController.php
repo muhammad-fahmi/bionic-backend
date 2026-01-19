@@ -2,14 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Models\ActionModel;
-use App\Models\ItemModel;
-use App\Models\LocationModel;
-use App\Models\ShiftModel;
-use App\Models\TaskSubmissionActionModel;
-use App\Models\TaskSubmissionItemModel;
-use App\Models\TaskSubmissionModel;
-use App\Models\UserModel;
+use App\Libraries\JwtService;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
@@ -50,6 +43,7 @@ abstract class BaseController extends Controller
      * The creation of dynamic property is deprecated in PHP 8.2.
      */
     // protected $session;
+    protected $jwt;
 
     /**
      * @return void
@@ -58,6 +52,30 @@ abstract class BaseController extends Controller
     {
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
+
+        $this->jwt = new JwtService();
+
+        // Initialize revision room count for sidebar badge
+        $jwt = session()->get('jwt');
+        if ($jwt) {
+            try {
+                $user = $this->jwt->decode($jwt);
+                if ($user && $user['user_role'] === 'operator') {
+                    $db = \Config\Database::connect();
+                    $revisedSubmissions = $db->table('r_task_submission')
+                        ->select('location_id')
+                        ->distinct()
+                        ->where('status', 'revisi')
+                        ->get()
+                        ->getResultArray();
+                    $revisionRoomCount = count($revisedSubmissions);
+                    // Store in session for use in all views
+                    session()->set('revision_room_count', $revisionRoomCount);
+                }
+            } catch (\Exception $e) {
+                // Silent fail if JWT decode fails
+            }
+        }
 
         // Preload any models, libraries, etc, here.
         // E.g.: $this->session = service('session');

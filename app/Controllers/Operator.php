@@ -3,107 +3,337 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Models\ActionModel;
 use App\Models\ItemModel;
 use App\Models\LocationModel;
-use App\Models\TaskSubmissionActionModel;
-use App\Models\TaskSubmissionItemModel;
 use App\Models\TaskSubmissionModel;
-use App\Models\TaskViewModel;
-use CodeIgniter\Exceptions\PageNotFoundException;
-use CodeIgniter\HTTP\ResponseInterface;
-use ErrorException;
-use Exception;
+use App\Models\TaskSubmissionDetailModel;
 
 class Operator extends BaseController
 {
-    protected $user_data;
-    public function __construct()
-    {
-        $this->user_data = (session()->has('user_info')) ? session()->get('user_info') : '';
-    }
-
+    /**
+     * Display operator dashboard with available rooms
+     */
     public function index()
     {
         $location = new LocationModel();
-        $sent_data = [
-            'page_title' => 'Dashboard',
-            'user_info' => $this->user_data,
-            'rooms' => $location->getAllRoomByShift($this->user_data['shift'])
-        ];
-        return view('operator/vw_dashboard', $sent_data);
+        $taskSubmission = new TaskSubmissionModel();
+        $rooms = $location->getAllRoom();
+        $today = date('Y-m-d');
+
+        // Preload submission and revision locations for today to avoid per-room queries
+        $submittedLocationIds = $taskSubmission->select('location_id')
+            ->where('date', $today)
+            ->groupBy('location_id')
+            ->findColumn('location_id') ?? [];
+
+        $revisionLocationIds = $taskSubmission->select('location_id')
+            ->where('date', $today)
+            ->whereIn('status', ['revisi', 'revised'])
+            ->groupBy('location_id')
+            ->findColumn('location_id') ?? [];
+
+        // Mark rooms that already have submissions today and those with revisions
+        foreach ($rooms as &$room) {
+            $roomId = $room['location_id'];
+            $room['submitted'] = in_array($roomId, $submittedLocationIds, true);
+            $room['has_revision'] = in_array($roomId, $revisionLocationIds, true);
+        }
+
+        return view('operator/vw_dashboard', [
+            'page_title' => 'Dashboard User',
+            'user_info' => $this->jwt->decode(session()->get('jwt')),
+            'rooms' => $rooms
+        ]);
     }
 
+    /**
+     * Display QR scan page with items for a specific location
+     */
     public function scan($location_id = null)
     {
-        $item = new ItemModel();
-        $location = new LocationModel();
+        if (!$location_id) {
+            return redirect()->to('operator')->with('error', 'Location tidak ditemukan');
+        }
 
-        // Fetch items with their associated actions
-        $items = $item->getItemsWithActionsByLocation($location_id);
+        $itemModel = new ItemModel();
+        $locationModel = new LocationModel();
+        $taskSubmissionModel = new TaskSubmissionModel();
+        $actionModel = new ActionModel();
 
-        $sent_data = [
+        $items = $itemModel->getRoomItem($location_id);
+        $locations = $locationModel->find($location_id);
+
+        if (!$locations) {
+            return redirect()->to('operator')->with('error', 'Lokasi tidak ditemukan');
+        }
+
+        $today = date('Y-m-d');
+        $submissions = $taskSubmissionModel->getSubmissionsWithDetails($location_id, $today);
+
+        // Fetch items with revision status (revisi/revised)
+        $revisionItemIds = $taskSubmissionModel->builder('r_task_submission AS rts')
+            ->select('rts.item_id')
+            ->where('rts.location_id', $location_id)
+            ->where('rts.date', $today)
+            ->whereIn('rts.status', ['revisi', 'revised'])
+            ->groupBy('rts.item_id')
+            ->get()
+            ->getResultArray();
+        $revisionItemIdList = array_column($revisionItemIds, 'item_id');
+
+        return view('operator/vw_qr_scan', [
             'page_title' => 'Scan Page',
-            'user_info' => $this->user_data,
-            'location' => $location->getLocationNameById($location_id),
-            'location_id' => $location_id,
-            'items' => $items
-        ];
-
-        return view('operator/vw_qr_scan', $sent_data);
+            'user_info' => $this->jwt->decode(session()->get('jwt')),
+            'items' => $items,
+            'locations' => $locations,
+            'actions' => $actionModel->findAll(),
+            'submissions' => $submissions,
+            'revision_items' => $revisionItemIdList
+        ]);
     }
 
-    public function submit()
+    /**
+     * Return modal content based on type
+     */
+    public function modal()
     {
-        $post_data = $this->request->getPost();
+        $id = $this->request->getVar('id');
+        $location_id = $this->request->getVar('location_id');
+        $type = $this->request->getVar('type');
 
-        $taskSubmissionModel = new TaskSubmissionModel();
-        $taskSubmissionItemModel = new TaskSubmissionItemModel();
-        $taskSubmissionActionModel = new TaskSubmissionActionModel();
+        if ($type === 'detail') {
+            $actionModel = new ActionModel();
+            $actions = $actionModel->where('item_id', $id)->findAll();
 
-        // Create main task submission
-        $taskSubmissionModel->save([
-            'tanggal' => date('Y-m-d H:i:s'),
-            'petugas' => $this->user_data['nama'],
-            'shift' => $this->user_data['shift'],
-            'lokasi_id' => (int) $post_data['lokasi_id'],
-            'status' => 'pending'
-        ]);
-        $submission_id = $taskSubmissionModel->getInsertID();
+            // Fetch default clean action from m_actions with item_id=999 and action_name='sudah bersih'
+            $cleanActionId = null;
+            $defaultActionModel = new ActionModel();
+            $defaultClean = $defaultActionModel
+                ->where('item_id', 999)
+                ->where('action_name', 'sudah bersih')
+                ->first();
 
-        // Process each item
-        foreach ($post_data as $key => $value) {
-            // Check if this is an item kondisi field
-            if (strpos($key, 'item_kondisi_') === 0) {
-                $item_id = str_replace('item_kondisi_', '', $key);
-
-                // Save item status
-                $taskSubmissionItemModel->save([
-                    'task_submission_id' => $submission_id,
-                    'item_id' => (int) $item_id,
-                    'kondisi' => $value,
-                    'revisi' => ''
-                ]);
+            if ($defaultClean && isset($defaultClean['action_id'])) {
+                $cleanActionId = (int) $defaultClean['action_id'];
             }
 
-            // Check if this is an action checkbox
-            if (strpos($key, 'action_') === 0) {
-                $parts = explode('_', $key);
-                if (count($parts) >= 3) {
-                    $action_id = $parts[1];
-                    $item_id = $parts[2];
+            return $this->response->setJSON([
+                'status' => 200,
+                'title' => 'List Aksi',
+                'html' => view('operator/modal/vw_modal_list_action', [
+                    'actions' => $actions,
+                    'item_id' => $id,
+                    'location_id' => $location_id,
+                    'clean_action_id' => $cleanActionId
+                ])
+            ]);
+        }
 
-                    // Save action status
-                    $taskSubmissionActionModel->save([
-                        'task_submission_id' => $submission_id,
-                        'item_id' => (int) $item_id,
-                        'nama' => $post_data['action_name_' . $action_id . '_' . $item_id] ?? '',
-                        'dikerjakan' => ($value === 'on' || $value === '1') ? 1 : 0
+        return $this->response->setStatusCode(404)->setJSON([
+            'status' => 404,
+            'message' => 'Modal tidak ditemukan'
+        ]);
+    }
+
+    /**
+     * Save task submission with error handling and validation
+     */
+    public function add_submission()
+    {
+        $user_id = $this->request->getVar('user_id');
+        $submissions_json = $this->request->getVar('submissions');
+
+        if (!$user_id) {
+            return $this->response->setStatusCode(400)->setJSON(['status' => 400, 'message' => 'User ID tidak valid']);
+        }
+
+        $taskSubmissionModel = new TaskSubmissionModel();
+        $taskSubmissionDetailModel = new TaskSubmissionDetailModel();
+
+        if ($submissions_json) {
+            $submissions = json_decode($submissions_json, true);
+
+            if (!$submissions || empty($submissions)) {
+                return $this->response->setStatusCode(400)->setJSON(['status' => 400, 'message' => 'Data submission tidak valid']);
+            }
+
+            $location_id = $submissions[0]['location_id'];
+            $date = $submissions[0]['date'];
+
+            // Fetch existing submissions for this location/date
+            $existing = $taskSubmissionModel->where('location_id', $location_id)
+                ->where('date', $date)
+                ->findAll();
+
+            $existingTasksByItem = [];
+            foreach ($existing as $ex) {
+                $itemId = (int) $ex['item_id'];
+                $existingTasksByItem[$itemId] = $ex;
+            }
+
+            // Group new submissions by item
+            $grouped = [];
+            foreach ($submissions as $submission) {
+                $itemId = (int) $submission['item_id'];
+                if (!isset($grouped[$itemId])) {
+                    $grouped[$itemId] = [
+                        'date' => $submission['date'],
+                        'location_id' => (int) $submission['location_id'],
+                        'item_id' => $itemId,
+                        'submitted_by' => (int) $user_id,
+                        'actions' => []
+                    ];
+                }
+
+                $aid = $submission['action_id'];
+                if (is_numeric($aid)) {
+                    $grouped[$itemId]['actions'][] = (int) $aid;
+                }
+            }
+
+            // Process submissions: update existing or create new
+            foreach ($grouped as $itemId => $payload) {
+                $timeCleaned = max(1, count($payload['actions']));
+
+                if (isset($existingTasksByItem[$itemId])) {
+                    // Update existing task submission
+                    $existingTask = $existingTasksByItem[$itemId];
+                    $taskId = $existingTask['task_submission_id'];
+
+                    // Update status: if revisi/revised, change to pending; otherwise keep verified
+                    $currentStatus = $existingTask['status'] ?? null;
+                    $newStatus = in_array($currentStatus, ['revisi', 'revised'], true) ? 'pending' : 'verified';
+
+                    // Update task submission FIRST (preserve revision_message, clear verified metadata)
+                    $updateData = [
+                        'time_cleaned' => $timeCleaned,
+                        'status' => $newStatus,
+                        'verified_by' => null,
+                        'verified_at' => null
+                    ];
+
+                    $taskSubmissionModel->update($taskId, $updateData);
+
+                    // Delete old details AFTER update
+                    $taskSubmissionDetailModel->where('task_submission_id', $taskId)->delete();
+                } else {
+                    // Create new task submission
+                    $data = [
+                        'date' => $payload['date'],
+                        'location_id' => $payload['location_id'],
+                        'item_id' => $payload['item_id'],
+                        'time_cleaned' => $timeCleaned,
+                        'revision_message' => null,
+                        'status' => 'pending',
+                        'submitted_by' => $payload['submitted_by'],
+                        'verified_by' => null,
+                        'verified_at' => null
+                    ];
+
+                    $taskId = $taskSubmissionModel->insert($data);
+                }
+
+                // Insert new details
+                foreach ($payload['actions'] as $actionId) {
+                    $taskSubmissionDetailModel->insert([
+                        'task_submission_id' => $taskId,
+                        'action_id' => $actionId,
+                        'quantity' => 1
                     ]);
                 }
             }
+
+            return $this->response->setJSON(['status' => 200, 'message' => 'Submission berhasil disimpan']);
         }
 
-        session()->setFlashdata('success', 'Task berhasil disubmit!');
-        return redirect()->to('operator');
+        return $this->response->setStatusCode(400)->setJSON(['status' => 400, 'message' => 'Data submission tidak ditemukan']);
+    }
+
+    /**
+     * Increment location visit count
+     */
+    public function increment_visit($location_id)
+    {
+        $jwt = session()->get('jwt');
+
+        if (!$jwt) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorized']);
+        }
+
+        $user = $this->jwt->decode($jwt);
+        if (!isset($user['user_id'])) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Invalid user']);
+        }
+
+        // Visit tracking no longer writes to r_task_submission to avoid schema mismatches
+        return $this->response->setJSON(['status' => 'success']);
+    }
+
+    /**
+     * Cancel task submission
+     */
+    public function cancel_submission($action_id)
+    {
+        if (!$action_id) {
+            return;
+        }
+
+        $taskSubmissionDetailModel = new TaskSubmissionDetailModel();
+        $detail = $taskSubmissionDetailModel->where('action_id', $action_id)->first();
+
+        if (!$detail) {
+            return;
+        }
+
+        $taskSubmissionModel = new TaskSubmissionModel();
+        $taskSubmissionDetailModel->delete($detail['task_submission_detail_id']);
+        $taskSubmissionModel->delete($detail['task_submission_id']);
+    }
+
+    /**
+     * Display revision tasks for operator
+     */
+    public function revisi()
+    {
+        $user = $this->jwt->decode(session()->get('jwt'));
+
+        // Get submissions that need revision with optimized query
+        $db = \Config\Database::connect();
+        $revisedSubmissions = $db->table('r_task_submission AS rts')
+            ->select('
+                rts.task_submission_id,
+                rts.date,
+                rts.location_id,
+                rts.item_id,
+                rts.revision_message,
+                rts.status,
+                rts.submitted_by,
+                ml.location_name,
+                mi.item_name,
+                GROUP_CONCAT(DISTINCT ma.action_name ORDER BY ma.action_name SEPARATOR ", ") AS action_names
+            ')
+            ->join('r_task_submission_detail AS rtsd', 'rts.task_submission_id = rtsd.task_submission_id')
+            ->join('m_actions AS ma', 'ma.action_id = rtsd.action_id', 'left')
+            ->join('m_locations AS ml', 'ml.location_id = rts.location_id', 'left')
+            ->join('m_items AS mi', 'mi.item_id = rts.item_id', 'left')
+            ->whereIn('rts.status', ['revisi', 'revised'])
+            ->groupBy('rts.task_submission_id, rts.date, rts.location_id, rts.item_id, rts.revision_message, rts.status, rts.submitted_by, ml.location_name, mi.item_name')
+            ->orderBy('rts.date', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        // Count unique locations needing revision
+        $revisionRoomCount = count(array_unique(array_column($revisedSubmissions, 'location_id')));
+
+        return view('operator/vw_revisi', [
+            'page_title' => 'Revisi Tugas',
+            'user_info' => $user,
+            'submissions' => $revisedSubmissions,
+            'items' => (new ItemModel())->findAll(),
+            'actions' => (new ActionModel())->findAll(),
+            'locations' => (new LocationModel())->findAll(),
+            'revision_room_count' => $revisionRoomCount
+        ]);
     }
 }

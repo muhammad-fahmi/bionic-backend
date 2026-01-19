@@ -13,17 +13,11 @@ class MainSeeder extends Seeder
         // Seed users first
         $this->call('UserSeeder');
 
-        // Seed locations (must come before items due to foreign key)
-        $this->call('NewLocationSeeder');
+        $this->call('LocationSeeder');
 
-        // Seed items (must come after locations due to foreign key)
-        $this->call('NewItemSeeder');
+        $this->call('ItemSeeder');
 
-        // Seed actions
-        $this->call('NewActionSeeder');
-
-        // Setup shift assignments (depends on users)
-        $this->call('ActivateCurrentShifts');
+        $this->call('ActionSeeder');
 
         echo "\n✓ All seeders completed successfully!\n";
     }

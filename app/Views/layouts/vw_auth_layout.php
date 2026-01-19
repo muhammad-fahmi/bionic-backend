@@ -67,6 +67,8 @@ if (isset($user_info) && $user_info == null) {
     <script src="<?= base_url('assets/js/theme.js'); ?>"></script>
     <script src="<?= base_url('assets/js/feather.min.js'); ?>"></script>
     <script src="<?= base_url('assets/libs/apexcharts/dist/apexcharts.min.js'); ?>"></script>
+    <!-- Lodash JS -->
+    <script src="<?= base_url('assets/js/lodash.js'); ?>"></script>
     <script>
         // get icon id
         const faviconLink = document.getElementById('favicon');

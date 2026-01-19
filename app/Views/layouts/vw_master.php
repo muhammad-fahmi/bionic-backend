@@ -19,9 +19,17 @@ if (isset($user_info) && $user_info == null) {
 
     <!-- Core CSS -->
     <link rel="stylesheet" href="<?= base_url('assets/css/styles.css') ?>" />
+    <!-- Datatable CSS -->
+    <link rel="stylesheet" href="<?= base_url('assets/css/new_datatable/datatables.min.css') ?>">
+    <!-- Sweet Alert 2 -->
+    <link rel="stylesheet" href="<?= base_url('assets/libs/sweetalert2/dist/sweetalert2.min.css') ?>">
+    <!-- Select 2 -->
+    <link rel="stylesheet" href="<?= base_url('assets\libs\select2\dist\css\select2.min.css') ?>">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <!-- Custom CSS -->
     <?= $this->renderSection('style') ?>
-    <title><?= $page_title ?? "Page Title"; ?></title>
+    <title><?= esc($page_title) ?? "Page Title"; ?></title>
 </head>
 
 <body>
@@ -44,7 +52,7 @@ if (isset($user_info) && $user_info == null) {
                         style="background: url(<?= base_url('assets/images/backgrounds/user-info.jpg') ?>) no-repeat;">
                         <!-- User profile image -->
                         <div class="profile-img">
-                            <img src="<?= ($user_info['jabatan'] == 'Admin') ? base_url('assets/profiles/') . $user_info['nama'] . '.jpg' : base_url('assets/images/profile/user-1.jpg') ?>"
+                            <img src="<?= (esc($user_info['user_role']) != 'administrator') ? base_url('assets/profiles/') . esc($user_info['name']) . '.jpg' : base_url('assets/images/profile/user-1.jpg') ?>"
                                 alt="user" class="w-100 rounded-circle overflow-hidden" />
                         </div>
                         <!-- END User profile image -->
@@ -54,7 +62,7 @@ if (isset($user_info) && $user_info == null) {
                             <!-- Identity Dropdown Button -->
                             <a href="#" class="dropdown-toggle u-dropdown w-100 text-white d-block position-relative"
                                 id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
-                                <?= $user_info['nama'] . "&nbsp;(" . $user_info['jabatan'] . ")" ?? "Markarn Doe" ?>
+                                <?= esc($user_info['name']) . "&nbsp;(" . esc($user_info['user_role']) . ")" ?? "Markarn Doe" ?>
                             </a>
                             <!-- END Identity Dropdown Button -->
                             <!-- Dropdown Menu Flip -->
@@ -84,7 +92,7 @@ if (isset($user_info) && $user_info == null) {
                                         stroke-linejoin="round"></i>
                                     Account Setting</a>
                                 <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="<?= base_url('auth/login') ?>">
+                                <a class="dropdown-item" href="<?= base_url('auth/logout') ?>">
                                     <i data-feather="log-out" width="24" height="24" stroke-width="2"
                                         class="feather-sm text-danger me-1 ms-1" stroke-linecap="round"
                                         stroke-linejoin="round"></i>
@@ -101,7 +109,7 @@ if (isset($user_info) && $user_info == null) {
                         <!-- Home -->
                         <!-- ---------------------------------- -->
                         <!-- Administrator -->
-                        <?php if ($user_info['jabatan'] == 'admin'): ?>
+                        <?php if (esc($user_info['user_role']) == 'administrator'): ?>
                             <!-- Group Name -->
                             <li class="nav-small-cap">
                                 <iconify-icon icon="solar:menu-dots-bold" class="nav-small-cap-icon fs-4"></iconify-icon>
@@ -131,42 +139,27 @@ if (isset($user_info) && $user_info == null) {
                             </li>
                             <li class="sidebar-item">
                                 <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                    href="<?= base_url('admin/manage/shift') ?>" aria-expanded="false">
-                                    <iconify-icon icon="solar:calendar-outline"></iconify-icon>
-                                    <span class="hide-menu">Manajemen Shift</span>
-                                </a>
-                            </li>
-                            <li class="sidebar-item">
-                                <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                    href="<?= base_url('admin/manage/location') ?>" aria-expanded="false">
+                                    href="<?= base_url('admin/manage/task') ?>" aria-expanded="false">
                                     <iconify-icon icon="solar:home-2-outline"></iconify-icon>
-                                    <span class="hide-menu">Manajemen Lokasi</span>
-                                </a>
-                            </li>
-                            <li class="sidebar-item">
-                                <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                    href="<?= base_url('admin/manage/item') ?>" aria-expanded="false">
-                                    <iconify-icon icon="solar:list-outline"></iconify-icon>
-                                    <span class="hide-menu">Manajemen Item</span>
+                                    <span class="hide-menu">Manajemen Tugas</span>
                                 </a>
                             </li>
                         <?php endif ?>
                         <!-- Verifikator -->
-                        <?php if ($user_info['jabatan'] == 'verifikator'): ?>
+                        <?php if ($user_info['user_role'] == 'verifikator'): ?>
                             <li class="nav-small-cap">
                                 <iconify-icon icon="solar:menu-dots-bold" class="nav-small-cap-icon fs-4"></iconify-icon>
                                 <span class="hide-menu">TUGAS</span>
                             </li>
                             <li class="sidebar-item">
                                 <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                    href="<?= base_url(relativePath: 'verifikator') ?>)" aria-expanded="false"><iconify-icon
-                                        icon="solar:widget-outline"></iconify-icon><span hpp class="hide-menu">Pekerjaan
-                                        Selesai</span></a>
+                                    href="<?= base_url(relativePath: 'verifikator'); ?>" aria-expanded="false"><iconify-icon
+                                        icon="solar:widget-outline"></iconify-icon><span hpp class="hide-menu">Dashboard</span></a>
                             </li>
                         <?php endif ?>
                         <!-- END Verifikator -->
                         <!-- Petugas -->
-                        <?php if ($user_info['jabatan'] == 'petugas'): ?>
+                        <?php if ($user_info['user_role'] == 'operator'): ?>
                             <li class="nav-small-cap">
                                 <iconify-icon icon="solar:menu-dots-bold" class="nav-small-cap-icon fs-4"></iconify-icon>
                                 <span class="hide-menu">TUGAS</span>
@@ -177,23 +170,22 @@ if (isset($user_info) && $user_info == null) {
                                         icon="solar:widget-outline"></iconify-icon><span hpp class="hide-menu">Tugas
                                         Utama</span></a>
                             </li>
-                            <li class="sidebar-item">
-                                <a class="sidebar-link waves-effect waves-dark sidebar-link" href="javascript:void(0)"
-                                    onclick="underDev()" aria-expanded="false"><iconify-icon
-                                        icon="solar:widget-outline"></iconify-icon><span class="hide-menu">Tugas
-                                        Tambahan</span></a>
-                            </li>
 
                             <li class="nav-small-cap">
                                 <iconify-icon icon="solar:menu-dots-bold" class="nav-small-cap-icon fs-4"></iconify-icon>
                                 <span class="hide-menu">REVISI TUGAS</span>
                             </li>
                             <li class="sidebar-item">
-                                <a class="sidebar-link" href="javascript:void(0)" aria-expanded="false">
+                                <a class="sidebar-link" href="<?= base_url('operator/revisi') ?>" aria-expanded="false">
                                     <span class="d-flex">
                                         <iconify-icon icon="solar:link-square-linear" class="fs-6"></iconify-icon>
                                     </span>
-                                    <span class="hide-menu">Revisi Tugas</span>
+                                    <span class="hide-menu">Revisi Tugas
+                                        <?php $revCount = session()->get('revision_room_count') ?? (isset($revision_room_count) ? $revision_room_count : 0); ?>
+                                        <?php if ($revCount > 0): ?>
+                                            <span class="badge bg-danger ms-1"><?= $revCount ?></span>
+                                        <?php endif; ?>
+                                    </span>
                                 </a>
                             </li>
                         <?php endif ?>
@@ -246,7 +238,7 @@ if (isset($user_info) && $user_info == null) {
                         <!-- XS,SM,MD Logo & Title -->
                         <div class="d-block d-lg-none">
                             <div class="brand-logo d-flex align-items-center justify-content-between">
-                                <a href="#" class="text-nowrap logo-img d-flex align-items-center">
+                                <a href="<?= base_url(); ?>" class="text-nowrap logo-img d-flex align-items-center">
                                     <b class="logo-icon">
                                         <img src="<?= base_url(" logo_light.png") ?>" class="dark-logo me-2"
                                             style="width: 24px" />
@@ -882,10 +874,10 @@ if (isset($user_info) && $user_info == null) {
                                                             class="rounded-circle round-50" alt="" />
                                                         <div class="ms-3">
                                                             <h5 class="mb-1 fs-4">
-                                                                <?= $user_info['nama'] ?? 'Markarn Doe' ?>
+                                                                <?= esc($user_info['name']) ?? 'Markarn Doe' ?>
                                                             </h5>
                                                             <p class="mb-0 fs-2 d-flex align-items-center">
-                                                                <?= $user_info['jabatan'] ?>
+                                                                <?= esc($user_info['user_role']) ?>
                                                             </p>
                                                         </div>
                                                     </div>
@@ -951,7 +943,7 @@ if (isset($user_info) && $user_info == null) {
                                                         <!-- END Account Settings -->
                                                         <!-- Sign Out -->
                                                         <div class="h6 mb-0 dropdown-item py-8 px-3 rounded-2 link">
-                                                            <a href="<?= base_url('auth/login'); ?>"
+                                                            <a href="<?= base_url('auth/logout/'); ?>"
                                                                 class=" d-flex  align-items-center ">
                                                                 Sign Out
                                                             </a>
@@ -984,14 +976,14 @@ if (isset($user_info) && $user_info == null) {
                     <!-- <div class="offcanvas offcanvas-start" data-bs-scroll="true" tabindex="-1" id="mobilenavbar">
                         <nav class="sidebar-nav scroll-sidebar">
                             <div class="offcanvas-header justify-content-between">
-                                <a href="<?= base_url(); ?>" class="text-nowrap logo-img d-block">
+                                <a href="<.?= base_url(); ?>" class="text-nowrap logo-img d-block">
                                     <b class="logo-icon">
-                                        <img src="<?= base_url('assets/images/logos/logo-icon.svg'); ?>" alt="homepage">
+                                        <img src="<.?= base_url('assets/images/logos/logo-icon.svg'); ?>" alt="homepage">
                                     </b>
                                     <span class="logo-text">
-                                        <img src="<?= base_url('assets/images/logos/logo-text.svg'); ?>" alt="homepage"
+                                        <img src="<.?= base_url('assets/images/logos/logo-text.svg'); ?>" alt="homepage"
                                             class="dark-logo ps-2">
-                                        <img src="<?= base_url('assets/images/logos/logo-light-text.svg'); ?>"
+                                        <img src="<.?= base_url('assets/images/logos/logo-light-text.svg'); ?>"
                                             class="light-logo ps-2" alt="homepage">
                                     </span>
                                 </a>
@@ -1192,7 +1184,7 @@ if (isset($user_info) && $user_info == null) {
         </div>
 
         <!--  Search Bar -->
-        <div class="modal fade" id="exampleModal" tabindex="-1" aria-hidden="true">
+        <!-- <div class="modal fade" id="exampleModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-scrollable modal-lg">
                 <div class="modal-content rounded-1">
                     <div class="modal-header border-bottom">
@@ -1282,61 +1274,61 @@ if (isset($user_info) && $user_info == null) {
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
         <!-- END Search Bar -->
 
         <!-- Custom Modal -->
         <!-- small modal -->
-        <div class="modal fade" id="bs-example-modal-sm" tabindex="-1">
+        <div id="bs_modal_sm" class="modal fade" tabindex="-1" data-bs-backdrop="static">
             <div class="modal-dialog modal-sm modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header d-flex align-items-center">
-                        <h4 class="modal-title" id="small_modal_title"></h4>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h4 class="modal-title" id="sm_modal_title"></h4>
+                        <!-- <button type="button" class="btn-close" data-bs-dismiss="modal"></button> -->
                     </div>
-                    <div class="modal-body" id="small_modal_body"></div>
+                    <div class="modal-body" id="sm_modal_body"></div>
                 </div>
             </div>
         </div>
         <!-- end small modal -->
 
         <!-- medium modal -->
-        <div id="bs-example-modal-md" class="modal fade" tabindex="-1">
+        <div id="bs_modal_md" class="modal fade" tabindex="-1" data-bs-backdrop="static">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header d-flex align-items-center">
-                        <h4 class="modal-title" id="medium_modal_title"></h4>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h4 class="modal-title" id="md_modal_title"></h4>
+                        <!-- <button type="button" class="btn-close" data-bs-dismiss="modal"></button> -->
                     </div>
-                    <div class="modal-body" id="medium_modal_body"></div>
+                    <div class="modal-body" id="md_modal_body"></div>
                 </div>
             </div>
         </div>
         <!-- end medium modal -->
 
         <!-- large modal -->
-        <div class="modal fade" id="bs-example-modal-lg" tabindex="-1">
+        <div id="bs_modal_lg" class="modal fade" tabindex="-1" data-bs-backdrop="static">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header d-flex align-items-center">
-                        <h4 class="modal-title" id="large_modal_title"></h4>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h4 class="modal-title" id="lg_modal_title"></h4>
+                        <!-- <button type="button" class="btn-close" data-bs-dismiss="modal"></button> -->
                     </div>
-                    <div class="modal-body" id="large_modal_body"></div>
+                    <div class="modal-body" id="lg_modal_body"></div>
                 </div>
             </div>
         </div>
         <!-- end large modal -->
 
         <!-- extra large modal -->
-        <div class="modal fade" id="bs-example-modal-xlg" tabindex="-1">
+        <div id="bs_modal_xlg" class="modal fade" tabindex="-1" data-bs-backdrop="static">
             <div class="modal-dialog modal-xl modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header d-flex align-items-center">
-                        <h4 class="modal-title" id="x_large_modal_title"></h4>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h4 class="modal-title" id="xlg_modal_title"></h4>
+                        <!-- <button type="button" class="btn-close" data-bs-dismiss="modal"></button> -->
                     </div>
-                    <div class="modal-body" id="x_large_modal_body"></div>
+                    <div class="modal-body" id="xlg_modal_body"></div>
                 </div>
             </div>
         </div>
@@ -1371,7 +1363,18 @@ if (isset($user_info) && $user_info == null) {
     <!-- Toastr JS -->
     <script src="<?= base_url('assets/js/plugins/toastr-init.js'); ?>"></script>
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="<?= base_url('assets/libs/sweetalert2/dist/sweetalert2.all.min.js'); ?>"></script>
+    <!-- Datatable JS -->
+    <script src="<?= base_url('assets/js/new_datatable/datatables.min.js') ?>"></script>
+    <!-- JQuery Validation -->
+    <script src="<?= base_url('assets/libs/jquery-validation/dist/jquery.validate.min.js') ?>"></script>
+    <script src="<?= base_url('assets/libs/jquery-validation/dist/additional-methods.min.js') ?>"></script>
+    <script src="<?= base_url('assets/libs/jquery-validation/dist/localization/messages_id.min.js') ?>"></script>
+    <script src="<?= base_url('assets/js/jquery.form.min.js') ?>"></script>
+    <!-- Select 2 -->
+    <script src="<?= base_url('assets/libs/select2/dist/js/select2.full.min.js') ?>"></script>
+    <!-- Lodash JS -->
+    <script src="<?= base_url('assets/js/lodash.js'); ?>"></script>
     <!-- Custom JS -->
     <script>
         feather.replace();

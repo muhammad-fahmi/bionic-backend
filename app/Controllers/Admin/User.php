@@ -4,30 +4,120 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Models\UserModel;
-use CodeIgniter\HTTP\ResponseInterface;
 
 class User extends BaseController
 {
     public function index()
     {
-        $user = new UserModel();
-        $users = $user->getAllUser();
+        if (!session()->has('jwt')) {
+            $decode = $this->jwt->decode(session()->get('jwt'));
+            if (time() > $decode['expire_time'] && !$decode['role'] == 'administrator') {
+                return redirect()->to('auth/login');
+            } else {
+                return;
+            }
+        }
+
         $sent_data = [
             'page_title' => 'Manage User',
-            'user_info' => session()->get('user_info'),
-            'users' => $users
+            'user_info' => $this->jwt->decode(session()->get('jwt')),
         ];
         return view('admin/vw_manage_user', $sent_data);
     }
 
-    public function create()
+    public function modal()
+    {
+        $id = $this->request->getVar('id');
+        $type = $this->request->getVar('type');
+        switch ($type) {
+            case 'add':
+                $formHtml = view('admin/modals/manage_user/vw_add_user_form');
+
+                return $this->response->setStatusCode(200)->setJSON([
+                    'status' => 200,
+                    'title' => 'Tambah User',
+                    'html' => $formHtml,
+                ]);
+            case 'edit':
+                $userModel = new UserModel();
+                $user = $userModel->getUserById($id);
+
+                if (!$user) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 404,
+                        'message' => 'User tidak ditemukan'
+                    ]);
+                }
+
+                $data = ['user' => $user];
+                $formHtml = view('admin/modals/manage_user/vw_edit_user_form', $data);
+
+                return $this->response->setStatusCode(200)->setJSON([
+                    'status' => 200,
+                    'title' => 'Edit User',
+                    'html' => $formHtml,
+                    'user' => $user
+                ]);
+            case 'delete':
+                $userModel = new UserModel();
+                $user = $userModel->getUserById($id);
+
+                if (!$user) {
+                    return $this->response->setStatusCode(404)->setJSON([
+                        'status' => 404,
+                        'message' => 'User tidak ditemukan'
+                    ]);
+                }
+
+                $data = ['user' => $user];
+                $formHtml = view('admin/modals/manage_user/vw_delete_user_form', $data);
+
+                return $this->response->setStatusCode(200)->setJSON([
+                    'status' => 200,
+                    'html' => $formHtml,
+                    'user' => $user
+                ]);
+            default:
+                $response = [
+                    'status' => 404,
+                    'message' => 'Tipe modal tidak ditemukan.'
+                ];
+                return $this->response->setJSON($response);
+        }
+    }
+
+    public function get_datatable()
+    {
+        $user = new UserModel();
+        $index = $this->request->getVar("order[0][column]");
+        // insert datatable param to transfer
+        $param = array(
+            'start' => $this->request->getVar("start"),
+            'length' => $this->request->getVar("length"),
+            'order_column' => $this->request->getVar("columns[$index][data]"),
+            'order_sort' => $this->request->getVar("order[0][dir]"),
+            'search' => $this->request->getVar("search[value]"),
+            'draw' => $this->request->getVar("draw"),
+            /* additional data can be declared here */
+        );
+        // move the db operation to the designated models
+        $result = $user->get_datatable($param);
+        // return the data back to the views
+        $data["recordsTotal"] = $result['total'];
+        $data["recordsFiltered"] = $result['filtered'];
+        $data["data"] = $result['data'];
+        $data["draw"] = $result['draw'];
+        return $this->response->setJSON($data);
+    }
+
+    public function add()
     {
         $userModel = new UserModel();
 
         // Validation rules
         $rules = [
-            'nama' => 'required|min_length[3]|max_length[200]',
-            'jabatan' => 'required|in_list[petugas,verifikator,admin]',
+            'name' => 'required|min_length[3]|max_length[200]',
+            'user_role' => 'required|in_list[operator,verifikator,administrator]',
             'username' => 'required|min_length[3]|max_length[150]',
             'password' => 'required|min_length[6]',
             'password_confirm' => 'required|matches[password]'
@@ -47,7 +137,7 @@ class User extends BaseController
             ]);
         }
 
-        $data = $this->request->getJSON(true);
+        $data = $this->validator->getValidated();
 
         // Check if username already exists
         if ($userModel->isUsernameExists($data['username'])) {
@@ -60,8 +150,8 @@ class User extends BaseController
 
         // Prepare insert data
         $insertData = [
-            'nama' => $data['nama'],
-            'jabatan' => $data['jabatan'],
+            'name' => $data['name'],
+            'user_role' => $data['user_role'],
             'username' => $data['username'],
             'password' => password_hash($data['password'], PASSWORD_BCRYPT)
         ];
@@ -84,36 +174,15 @@ class User extends BaseController
         ]);
     }
 
-    public function show($id)
+    public function update()
     {
-        $userModel = new UserModel();
-        $user = $userModel->getUserById($id);
-
-        if (!$user) {
-            return $this->response->setStatusCode(404)->setJSON([
-                'status' => 404,
-                'message' => 'User tidak ditemukan'
-            ]);
-        }
-
-        $data = ['user' => $user];
-        $formHtml = view('admin/modals/vw_edit_user_form', $data);
-
-        return $this->response->setStatusCode(200)->setJSON([
-            'status' => 200,
-            'html' => $formHtml,
-            'user' => $user
-        ]);
-    }
-
-    public function update($id)
-    {
+        $id = $this->request->getVar('id');
         $userModel = new UserModel();
 
         // Validation rules
         $rules = [
-            'nama' => 'required|min_length[3]|max_length[200]',
-            'jabatan' => 'required|in_list[petugas,verifikator,admin]',
+            'name' => 'required|min_length[3]|max_length[200]',
+            'user_role' => 'required|in_list[operator,verifikator,administrator]',
             'username' => 'required|min_length[3]|max_length[150]',
             'password' => 'permit_empty|min_length[6]'
         ];
@@ -126,7 +195,7 @@ class User extends BaseController
             ]);
         }
 
-        $data = $this->request->getJSON(true);
+        $data = $this->validator->getValidated();
 
         // Check unique username
         if (!$userModel->isUsernameUnique($data['username'], $id)) {
@@ -139,8 +208,8 @@ class User extends BaseController
 
         // Prepare update data
         $updateData = [
-            'nama' => $data['nama'],
-            'jabatan' => $data['jabatan'],
+            'name' => $data['name'],
+            'user_role' => $data['user_role'],
             'username' => $data['username']
         ];
 
@@ -163,8 +232,9 @@ class User extends BaseController
         ]);
     }
 
-    public function delete($id)
+    public function delete()
     {
+        $id = $this->request->getVar('id');
         $userModel = new UserModel();
 
         // Check if user exists

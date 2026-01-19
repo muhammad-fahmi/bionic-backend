@@ -9,71 +9,85 @@ use CodeIgniter\Router\RouteCollection;
 
 // Authentication Routes
 $routes->group("auth", static function (RouteCollection $routes) {
+    // GET
     $routes->get('login', 'Auth::login');
+    $routes->get('logout', 'Auth::logout');
+    // POST
     $routes->post('login', 'Auth::login_handler');
-    $routes->post('create', 'Auth::create');
+    // PUT
+    // DELETE
 });
 
 // Admin Routes
 $routes->group('admin', static function (RouteCollection $routes) {
     $routes->get('/', 'Admin\Dashboard::index');
+    $routes->get('get_stats', 'Admin\Dashboard::get_stats');
+    $routes->get('get_room_visits', 'Admin\Dashboard::get_room_visits');
     $routes->group('manage', static function (RouteCollection $routes) {
+
         // Management User
         $routes->group('user', static function (RouteCollection $routes) {
+            // GET
             $routes->get('/', 'Admin\User::index');
-            $routes->post('add', 'Admin\User::create');
-            $routes->get('(:num)', 'Admin\User::show/$1');
-            $routes->put('edit/(:num)', 'Admin\User::update/$1');
-            $routes->delete('delete/(:num)', 'Admin\User::delete/$1');
+            // POST
+            $routes->post('get_datatable', 'Admin\User::get_datatable');
+            $routes->post('modal', 'Admin\User::modal');
+            $routes->post('add', 'Admin\User::add');
+            // PUT
+            $routes->put('edit', 'Admin\User::update');
+            // DELETE
+            $routes->delete('delete', 'Admin\User::delete');
         });
 
-        // Management Item
-        // TODO: Perbaiki Module Management Item
-        $routes->group('item', static function (RouteCollection $routes) {
-            $routes->get('/', 'Admin\Item::index');
-            $routes->post('modal', 'Admin\Item::modal');
-            $routes->post('add', 'Admin\Item::add');
-            $routes->get('(:num)', 'Admin\Item::show/$1');
-            $routes->put('edit/(:num)', 'Admin\Item::update/$1');
-            $routes->delete('delete/(:num)', 'Admin\Item::delete/$1');
-        });
-
-        // Management Activity
-        // TODO: Perbaiki Module Management Activity dan Tambahkan di sidebar
-        $routes->group('activity', static function (RouteCollection $routes) {
-            $routes->get('/', 'Admin\Activity::index');
-        });
-
-        // TODO: Perbaiki Module Management Lokasi
-        $routes->group('location', static function (RouteCollection $routes) {
-            $routes->get('/', 'Admin\Location::index');
-        });
-
-        // TODO: Sesuaikan Module Management Shift
-        $routes->group('shift', static function (RouteCollection $routes) {
-            $routes->get('/', 'Admin\Shift::index');
-            $routes->post('initialize', 'Admin\Shift::initialize');
-            $routes->post('rotate-all', 'Admin\Shift::rotateAll');
-            $routes->post('assign-user', 'Admin\Shift::assignUser');
-            $routes->get('history/(:num)', 'Admin\Shift::history/$1');
-            $routes->get('statistics', 'Admin\Shift::getStatistics');
-        });
-
-        // TODO: Tambahkan Module Task ke Sidebar
+        // Management Location
         $routes->group('task', static function (RouteCollection $routes) {
-            $routes->get('/', 'Admin\TaskManagement::index');
+            // GET
+            $routes->get('/', 'Admin\Task::index');
+            $routes->get('(:num)', 'Admin\Task::index/$1');
+            $routes->get('(:num)/(:num)', 'Admin\Task::index/$1/$2');
+            // POST
+            $routes->post('get_datatable/location', 'Admin\Task::get_datatable_location');
+            $routes->post('get_datatable/item', 'Admin\Task::get_datatable_item');
+            $routes->post('get_datatable/action', 'Admin\Task::get_datatable_action');
+            $routes->post('modal/location', 'Admin\Task::modal_location');
+            $routes->post('modal/item', 'Admin\Task::modal_item');
+            $routes->post('modal/action', 'Admin\Task::modal_action');
+            $routes->post('add/location', 'Admin\Task::add_location');
+            $routes->post('add/item', 'Admin\Task::add_item');
+            $routes->post('add/action', 'Admin\Task::add_action');
+            // PUT
+            $routes->put('edit/location', 'Admin\Task::update_location');
+            $routes->put('edit/item', 'Admin\Task::update_item');
+            $routes->put('edit/action', 'Admin\Task::update_action');
+            // DELETE
+            $routes->delete('delete/location', 'Admin\Task::delete_location');
+            $routes->delete('delete/item', 'Admin\Task::delete_item');
+            $routes->delete('delete/action', 'Admin\Task::delete_action');
         });
+
     });
 });
 
-// TODO: Perbaiki Module Operator/Petugas
+
 $routes->group("operator", static function (RouteCollection $routes) {
-    $routes->get('/', 'Operator::index', ['as' => 'operator.index']);
+    $routes->get('/', 'Operator::index');
+    $routes->get('scan/(:num)', 'Operator::scan/$1');
+    $routes->get('revisi', 'Operator::revisi');
+    $routes->post('modal', 'Operator::modal');
+    $routes->post('add', 'Operator::add_submission');
+    $routes->post('increment_visit/(:num)', 'Operator::increment_visit/$1');
+    $routes->delete('cancel/(:num)', 'Operator::cancel_submission/$1');
 });
 
-// TODO: Perbaiki Module Verifikator
 $routes->group("verifikator", static function (RouteCollection $routes) {
-    $routes->get('/', 'Verifikator::index', ['as' => 'verifikator.index']);
+    // GET
+    $routes->get('/', 'Verifikator::index');
+    // POST
+    $routes->post('get_datatable', 'Verifikator::get_datatable');
+    $routes->post('modal', 'Verifikator::modal');
+    $routes->post('update', 'Verifikator::update');
+    // PUT
+    $routes->put('edit', 'Verifikator::update');
 });
 
 $routes->set404Override(function () {

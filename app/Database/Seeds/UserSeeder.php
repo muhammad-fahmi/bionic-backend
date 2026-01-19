@@ -8,51 +8,59 @@ class UserSeeder extends Seeder
 {
     public function run()
     {
-        $db = \Config\Database::connect();
+        $this->db->disableForeignKeyChecks();
 
-        // Disable foreign key checks
-        $db->query('SET FOREIGN_KEY_CHECKS=0');
+        try {
+            // Truncate the table
+            $this->db->table('m_users')->truncate();
 
-        $builder = $db->table('m_users');
-        $builder->truncate();
+            $data = [
+                [
+                    'name' => 'prasongko',
+                    'user_role' => 'administrator',
+                    'username' => 'prasongko',
+                    'password' => password_hash('prasongko', PASSWORD_BCRYPT),
+                    'is_active' => 1
+                ],
+                [
+                    'name' => 'yanto',
+                    'user_role' => 'operator',
+                    'username' => 'yanto',
+                    'password' => password_hash('yanto', PASSWORD_BCRYPT),
+                    'is_active' => 1
+                ],
+                [
+                    'name' => 'octo',
+                    'user_role' => 'operator',
+                    'username' => 'octo',
+                    'password' => password_hash('octo', PASSWORD_BCRYPT),
+                    'is_active' => 1
+                ],
+                [
+                    'name' => 'theo',
+                    'user_role' => 'operator',
+                    'username' => 'theo',
+                    'password' => password_hash('theo', PASSWORD_BCRYPT),
+                    'is_active' => 1
+                ],
+                [
+                    'name' => 'rian',
+                    'user_role' => 'verifikator',
+                    'username' => 'rian',
+                    'password' => password_hash('rian', PASSWORD_BCRYPT),
+                    'is_active' => 1
+                ],
+            ];
 
-        $data = [
-            [
-                'nama' => 'Admin',
-                'jabatan' => 'admin',
-                'username' => 'admin',
-                'password' => password_hash("admin", PASSWORD_BCRYPT)
-            ],
-            [
-                'nama' => 'Yanto',
-                'jabatan' => 'petugas',
-                'username' => 'yanto',
-                'password' => password_hash("yanto", PASSWORD_BCRYPT)
-            ],
-            [
-                'nama' => 'Theo',
-                'jabatan' => 'petugas',
-                'username' => 'theo',
-                'password' => password_hash("theo", PASSWORD_BCRYPT)
-            ],
-            [
-                'nama' => 'Octo',
-                'jabatan' => 'petugas',
-                'username' => 'octo',
-                'password' => password_hash("octo", PASSWORD_BCRYPT)
-            ],
-            [
-                'nama' => 'Rian',
-                'jabatan' => 'verifikator',
-                'username' => 'rian',
-                'password' => password_hash("rian", PASSWORD_BCRYPT)
-            ],
-        ];
-
-        $db->table('m_users')->insertBatch($data);
-        echo "Inserted " . \count($data) . " users\n";
-
-        // Re-enable foreign key checks
-        $db->query('SET FOREIGN_KEY_CHECKS=1');
+            if (!empty($data)) {
+                $this->db->table('m_users')->insertBatch($data);
+                echo "✓ Seeded " . count($data) . " users\n";
+            }
+        } catch (\Exception $e) {
+            echo "✗ Error seeding users: " . $e->getMessage() . "\n";
+            throw $e;
+        } finally {
+            $this->db->enableForeignKeyChecks();
+        }
     }
 }
