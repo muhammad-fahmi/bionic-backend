@@ -123,6 +123,7 @@
                     const cameraId = devices[0].id;
                     qrScanner.start(
                         cameraId,
+                        { facingMode: "environment" },
                         { fps: 10, qrbox: { width: 150, height: 150 } },
                         onQrCodeScanned,
                         onScanError
