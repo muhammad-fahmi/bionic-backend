@@ -24,7 +24,7 @@ if (isset($user_info) && $user_info == null) {
     <!-- Sweet Alert 2 -->
     <link rel="stylesheet" href="<?= base_url('assets/libs/sweetalert2/dist/sweetalert2.min.css') ?>">
     <!-- Select 2 -->
-    <link rel="stylesheet" href="<?= base_url('assets\libs\select2\dist\css\select2.min.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/libs/select2/dist/css/select2.min.css') ?>">
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <!-- Custom CSS -->
