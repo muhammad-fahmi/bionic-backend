@@ -123,17 +123,17 @@
 	});
 
 	rotateCameraButton.addEventListener('click', function () {
-		if (cameraState == 0) {
+		if (cameraState == 1) {
 			qrScanner.stop().then(() => {
 				startCamera('user');
-				cameraState = 1;
+				cameraState = 0;
 			}).catch(err => {
 				toastr.error('Gagal memutar kamera: ' + err, 'Error');
 			});
 		} else {
 			qrScanner.stop().then(() => {
 				startCamera('environment');
-				cameraState = 0;
+				cameraState = 1;
 			}).catch(err => {
 				toastr.error('Gagal memutar kamera: ' + err, 'Error');
 			});
